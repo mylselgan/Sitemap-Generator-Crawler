@@ -371,30 +371,33 @@ function scan_url($url)
         return $depth--;
     }
 
+    $is_nondex_url = false;
     if ($noindex && (preg_match_all('/\<meta.*?\>/mis',$html,$ar) and strstr(join(',',$ar[0]),'noindex'))) {
         logger("This page is set to noindex.", 1);
-        return $depth--;
+        $is_nondex_url = true;
     }
 
     if (strpos($url, "&") && strpos($url, ";") === false) {
         $url = str_replace("&", "&amp;", $url);
     }
 
-    $map_row = "<url>\n";
-    $map_row .= "<loc>$url</loc>\n";
-    if ($enable_frequency) {
-        $map_row .= "<changefreq>$freq</changefreq>\n";
+    if ($is_nondex_url == false) {
+        $map_row = "<url>\n";
+        $map_row .= "<loc>$url</loc>\n";
+        if ($enable_frequency) {
+            $map_row .= "<changefreq>$freq</changefreq>\n";
+        }
+        if ($enable_priority) {
+            $map_row .= "<priority>$priority</priority>\n";
+        }
+        if ($modified) {
+            $map_row .= "   <lastmod>$modified</lastmod>\n";
+        }
+        $map_row .= "</url>\n";
+        fwrite($file_stream, $map_row);
+        $indexed++;
+        logger("Added: " . $url . (($modified) ? " [Modified: " . $modified . "]" : ''), 0);
     }
-    if ($enable_priority) {
-        $map_row .= "<priority>$priority</priority>\n";
-    }
-    if ($modified) {
-        $map_row .= "   <lastmod>$modified</lastmod>\n";
-    }
-    $map_row .= "</url>\n";
-    fwrite($file_stream, $map_row);
-    $indexed++;
-    logger("Added: " . $url . (($modified) ? " [Modified: " . $modified . "]" : ''), 0);
     unset($is_image, $map_row);
 
     // Extract urls from <a href="??"></a>
